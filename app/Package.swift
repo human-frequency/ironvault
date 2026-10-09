@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "IronVault",
-    platforms: [.macOS(.v12)],
+    platforms: [.macOS(.v13)],
     targets: [
         // Encryption, file format, config and the open-copy folder. Shared by the app and the command.
         .target(name: "IronVaultCore", path: "Sources/IronVaultCore"),

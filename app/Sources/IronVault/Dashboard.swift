@@ -1,8 +1,6 @@
 import AppKit
 import Combine
-#if canImport(IronVaultCore)
-import IronVaultCore   // separate module when built with Swift's package manager
-#endif
+import IronVaultCore
 import SwiftUI
 
 /// Wording for each kind of event, shared by the Dashboard and notifications.
@@ -113,8 +111,9 @@ struct DashboardView: View {
 
     private func statTile(_ label: String, _ value: Int, _ color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(value)").font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())
+            Text("\(value)").font(.system(size: 26, weight: .semibold, design: .rounded))
                 .foregroundStyle(value > 0 ? color : Color.secondary)
+                .monospacedDigit()
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,7 +131,7 @@ struct DashboardView: View {
             }
             Spacer(minLength: 8)
             Text(e.time, format: .dateTime.month(.abbreviated).day().hour().minute())
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary).monospacedDigit()
         }
         .padding(.vertical, 3)
     }

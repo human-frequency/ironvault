@@ -196,7 +196,7 @@ public enum VaultFiles {
         let dir = config.openCopiesDir
         guard let items = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.creationDateKey]) else { return }
         for item in items {
-            if let age = age {
+            if let age {
                 let created = (try? item.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantPast
                 guard Date().timeIntervalSince(created) > age else { continue }
             }

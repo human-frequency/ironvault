@@ -1,8 +1,6 @@
 import CryptoKit
 import Foundation
-#if canImport(IronVaultCore)
-import IronVaultCore   // separate module when built with Swift's package manager
-#endif
+import IronVaultCore
 
 // The `ironvault` command, installed root-owned at /Library/IronVault/bin/ironvault.
 // It can seal files and list the vault. It cannot open anything: only the IronVault app

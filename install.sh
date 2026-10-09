@@ -25,17 +25,17 @@ step() { print -- "\n▸ $1"; }
 
 # --- Checks before anything changes ---------------------------------------------
 [[ "$EUID" -ne 0 ]] || die "Run this as yourself, not with sudo. It asks for permission when it needs it."
-[[ "$(sw_vers -productVersion | cut -d. -f1)" -ge 12 ]] || die "IronVault needs macOS 12 Monterey or later."
+[[ "$(sw_vers -productVersion | cut -d. -f1)" -ge 13 ]] || die "IronVault needs macOS 13 Ventura or later."
 for f in app/Package.swift app/Info.plist scripts/build-app.sh launchd/$LABEL.plist; do
   [[ -f "$HERE/$f" ]] || die "Missing $f. Run install.sh from inside the unzipped ironvault folder."
 done
 [[ "$HERE" != "$HOME/Library/Mobile Documents"* ]] || die "Move the ironvault folder out of iCloud Drive first."
-xcrun swiftc --version >/dev/null 2>&1 \
+swift --version >/dev/null 2>&1 \
   || die "IronVault is built on your Mac and needs Apple's Command Line Tools. Run: xcode-select --install, then run this again."
 
 # --- Build first, so a failed build changes nothing -----------------------------
 step "Building IronVault (this takes a minute the first time)"
-zsh -f "$HERE/scripts/build-app.sh" || die "The build failed, so nothing was installed. Try the \"If the build fails\" steps in the README, or send the error above."
+zsh -f "$HERE/scripts/build-app.sh" || die "The build failed, so nothing was installed. Send the error above."
 
 print "\nmacOS will ask for Touch ID or your password a few times."
 sudo -v || die "Administrator permission is needed to install IronVault."

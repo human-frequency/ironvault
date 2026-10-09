@@ -1,9 +1,8 @@
 import AppKit
 import CryptoKit
 import Foundation
-#if canImport(IronVaultCore)
-import IronVaultCore   // separate module when built with Swift's package manager
-#endif
+import IronVaultCore
+import ServiceManagement
 import UniformTypeIdentifiers
 
 /// Opens one sealed document at a time after Touch ID, saves your edits back into the sealed
@@ -32,7 +31,7 @@ final class VaultController: ObservableObject {
     @Published private(set) var config: VaultConfig?
     @Published private(set) var sealedCount = 0
     @Published private(set) var unseenAlerts = 0
-    @Published private(set) var opensAtLogin = LoginItem.isEnabled
+    @Published private(set) var opensAtLogin = SMAppService.mainApp.status == .enabled
     @Published var closeOnSleep = true {
         didSet { UserDefaults.standard.set(closeOnSleep, forKey: "closeOnSleep") }
     }
@@ -55,8 +54,8 @@ final class VaultController: ObservableObject {
         closeOnSleep = UserDefaults.standard.object(forKey: "closeOnSleep") as? Bool ?? true
         if !UserDefaults.standard.bool(forKey: "didSetUpLogin") {
             UserDefaults.standard.set(true, forKey: "didSetUpLogin")
-            try? LoginItem.enable()
-            opensAtLogin = LoginItem.isEnabled
+            try? SMAppService.mainApp.register()
+            opensAtLogin = SMAppService.mainApp.status == .enabled
         }
         config = try? VaultConfig.load()
         if let config = self.config {
@@ -104,7 +103,7 @@ final class VaultController: ObservableObject {
     /// Files opened from Finder, the menu or the ironvault command all arrive here.
     /// Requests that arrive together share one Touch ID prompt.
     func requestOpen(_ urls: [URL], requester: String? = nil) {
-        if let requester = requester, !urls.isEmpty, !pendingRequesters.contains(requester) { pendingRequesters.append(requester) }
+        if let requester, !urls.isEmpty, !pendingRequesters.contains(requester) { pendingRequesters.append(requester) }
         let sealed = urls.filter { $0.pathExtension == VaultCrypto.fileExtension }
         if sealed.count < urls.count { lastError = "IronVault only opens .ivault files." }
         for url in sealed {
@@ -117,9 +116,9 @@ final class VaultController: ObservableObject {
         guard !pending.isEmpty, pendingTask == nil else { return }
         pendingTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
-            await self.openPending()
-            self.pendingTask = nil
-            if !self.pending.isEmpty { self.requestOpen([]) }
+            await openPending()
+            pendingTask = nil
+            if !pending.isEmpty { requestOpen([]) }
         }
     }
 
@@ -295,11 +294,11 @@ final class VaultController: ObservableObject {
 
     func setOpensAtLogin(_ on: Bool) {
         do {
-            if on { try LoginItem.enable() } else { try LoginItem.disable() }
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
             lastError = "Open at Login failed. \(error.localizedDescription)"
         }
-        opensAtLogin = LoginItem.isEnabled
+        opensAtLogin = SMAppService.mainApp.status == .enabled
     }
 
     // MARK: Timers and system events
@@ -380,12 +379,12 @@ final class VaultController: ObservableObject {
                 folders.map { (id: $0.id, openers: AccessMonitor.openers(of: $0.path)) }
             }.value
             for entry in found {
-                guard let i = self.docs.firstIndex(where: { $0.id == entry.id }) else { continue }
-                for opener in entry.openers where !self.docs[i].seenReaders.contains(opener.name) {
-                    self.docs[i].seenReaders.insert(opener.name)
+                guard let i = docs.firstIndex(where: { $0.id == entry.id }) else { continue }
+                for opener in entry.openers where !docs[i].seenReaders.contains(opener.name) {
+                    docs[i].seenReaders.insert(opener.name)
                     let unusual = AccessMonitor.isUnusual(opener.name)
                     let chain = unusual ? (AccessMonitor.processChain(opener.pid) ?? opener.name) : opener.name
-                    self.log(ActivityEvent(kind: .copyReader, files: [ActivityLog.relativePath(self.docs[i].source, in: config)],
+                    log(ActivityEvent(kind: .copyReader, files: [ActivityLog.relativePath(docs[i].source, in: config)],
                                       by: chain, unusual: unusual))
                 }
             }

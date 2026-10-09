@@ -1,8 +1,6 @@
 import CryptoKit
 import Foundation
-#if canImport(IronVaultCore)
-import IronVaultCore   // separate module when built with Swift's package manager
-#endif
+import IronVaultCore
 
 /// Gets the vault's private key for one request, after macOS's administrator prompt
 /// (Touch ID, or your password). A new osascript process each time, so no earlier approval

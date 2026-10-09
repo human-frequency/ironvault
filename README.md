@@ -7,14 +7,11 @@ unless you approve that exact file with Touch ID. Opening one document never ope
 the decrypted copy is wiped automatically, and a Dashboard shows every app that asked for or
 tried to read a vault file.
 
-- **Download (latest, 2.1):** [`dist/ironvault.zip`](dist/ironvault.zip) (source and installer)
-- **Previous release (2.0):** [`dist/ironvault-2.0.0.zip`](dist/ironvault-2.0.0.zip), macOS 13 or later. See [CHANGELOG.md](CHANGELOG.md)
+- **Download (latest, 2.0):** [`dist/ironvault.zip`](dist/ironvault.zip) (source and installer)
+- **Also available (2.1):** [`dist/ironvault-2.1.0.zip`](dist/ironvault-2.1.0.zip), adds macOS 12 Monterey support. Source on the [`release-2.1`](../../tree/release-2.1) branch. See [CHANGELOG.md](CHANGELOG.md)
 - **User manual:** [`docs/IronVault-User-Manual.pdf`](docs/IronVault-User-Manual.pdf)
-- **Requires:** macOS 12 Monterey or later, Apple's free Command Line Tools (no Xcode)
+- **Requires:** macOS 13 Ventura or later, Apple's free Command Line Tools (no Xcode)
 - **Status:** Tested for MAC OS 13.x and above only on M-chip
-
-Works on macOS 12 Monterey (12.0 and later, including 12.1) and every newer version, on Apple
-silicon and Intel Macs.
 
 ## How you use it
 
@@ -45,8 +42,8 @@ approve.
    ```
    Approve the Touch ID or password prompts. At the end it shows your **recovery key** once.
    Save it in your password manager or on paper. It's the only way to open your files if the
-   Mac is lost, because the key is deliberately kept out of backups. On macOS 13 or later,
-   macOS may say IronVault added a background item; that's the watchdog, so leave it on.
+   Mac is lost, because the key is deliberately kept out of backups. macOS may say IronVault
+   added a background item; that's the watchdog, so leave it on.
 3. **Self-test.** Run:
    ```sh
    zsh ~/Downloads/ironvault/scripts/selftest.sh
@@ -55,33 +52,6 @@ approve.
    byte are both refused, and saves `selftest-result.txt`. **Until it passes, IronVault never
    deletes an original**: auto-sealing the folder stays off and Add Files keeps your originals.
    If anything fails, send that file.
-
-### If the build fails
-
-The installer compiles IronVault with Apple's Swift compiler. If that fails, the Command Line
-Tools on your Mac are usually out of date or damaged, which often happens after a macOS update.
-Reinstall them:
-
-```sh
-sudo rm -rf /Library/Developer/CommandLineTools
-xcode-select --install
-```
-
-Wait for the install window to finish, then run `install.sh` again. If you have Xcode installed
-too, also run `sudo xcode-select --switch /Library/Developer/CommandLineTools`.
-
-### On macOS 12 Monterey
-
-`xcode-select --install` gives you the newest Command Line Tools your macOS version can run,
-which is all IronVault needs. If it can't find them, download "Command Line Tools for Xcode
-13.2" from developer.apple.com/download/all (free Apple ID) and install that package.
-
-Everything works the same on Monterey as on newer macOS. On every version, **Open at Login**
-is a small file in `~/Library/LaunchAgents` (`local.ironmountain.ironvault.plist`) that opens
-IronVault when you log in, because the newer login item system doesn't exist on Monterey.
-Turning the menu item off deletes that file, and it takes effect at your next login. On macOS
-13 or later it may show as a second background item in System Settings › General › Login Items;
-leave it on if you want IronVault to start with the Mac.
 
 ## The menu bar
 
@@ -226,7 +196,7 @@ and key, and leaves your sealed files. After that only the recovery key opens th
 | `install.sh` | Builds and installs, or updates. A failed build changes nothing. |
 | `uninstall.sh` | Removes IronVault and keeps your sealed files. |
 | `scripts/selftest.sh` | Proves sealing and opening work on your Mac, then turns on deleting originals. |
-| `scripts/build-app.sh` | Builds into `./build` without installing, using the Swift compiler directly. |
+| `scripts/build-app.sh` | Builds into `./build` without installing. |
 | `app/Sources/IronVaultCore` | Encryption, the file format and the vault folder logic. |
 | `app/Sources/IronVault` | The menu bar app: Touch ID, opening, saving back, wiping. |
 | `app/Sources/ironvault-cli` | The `ironvault` command and the watchdog. |

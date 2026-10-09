@@ -1,32 +1,9 @@
 import AppKit
-import Combine
-#if canImport(IronVaultCore)
-import IronVaultCore   // separate module when built with Swift's package manager
-#endif
-
-@main
-enum IronVaultMain {
-    private static var delegate: AppDelegate?
-
-    @MainActor
-    static func main() {
-        let app = NSApplication.shared
-        let appDelegate = AppDelegate()
-        delegate = appDelegate             // NSApplication only keeps a weak reference
-        app.delegate = appDelegate
-        app.setActivationPolicy(.accessory) // menu bar only, no Dock icon
-        app.run()
-    }
-}
+import IronVaultCore
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusMenu: StatusMenu?
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        statusMenu = StatusMenu(vault: VaultController.shared)
-    }
-
     /// Double-clicking a .ivault file in Finder, or `ironvault open`, lands here.
     func application(_ application: NSApplication, open urls: [URL]) {
         VaultController.shared.requestOpen(urls, requester: requester())
@@ -49,151 +26,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// The lock in the menu bar. Plain AppKit, so it works on macOS 12 as well as later versions.
-@MainActor
-final class StatusMenu: NSObject, NSMenuDelegate {
-    /// Wraps a menu action so each item can carry its own closure.
-    private final class Action: NSObject {
-        let run: () -> Void
-        init(_ run: @escaping () -> Void) { self.run = run }
-    }
+@main
+struct IronVaultApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var vault = VaultController.shared
 
-    private let vault: VaultController
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    private let menu = NSMenu()
-    private var changes: AnyCancellable?
-    private var liveTimer: Timer?
-    private var statusItem: NSMenuItem?
-    private var docItems: [(id: UUID, item: NSMenuItem)] = []
-
-    init(vault: VaultController) {
-        self.vault = vault
-        super.init()
-        menu.delegate = self
-        menu.autoenablesItems = false
-        item.menu = menu
-        updateIcon()
-        changes = vault.objectWillChange.sink { [weak self] _ in
-            // objectWillChange fires before the new values are stored.
-            DispatchQueue.main.async { self?.updateIcon() }
+    var body: some Scene {
+        MenuBarExtra {
+            VaultMenu(vault: vault)
+        } label: {
+            Image(systemName: vault.unseenAlerts > 0 ? "lock.trianglebadge.exclamationmark.fill"
+                              : vault.docs.isEmpty ? "lock.fill" : "lock.open.fill")
         }
+        .menuBarExtraStyle(.menu)
     }
+}
 
-    private func updateIcon() {
-        let name = vault.unseenAlerts > 0 ? "lock.trianglebadge.exclamationmark.fill"
-                 : vault.docs.isEmpty ? "lock.fill" : "lock.open.fill"
-        guard item.button?.image?.accessibilityDescription != name else { return }
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: name)
-        image?.isTemplate = true
-        item.button?.image = image
-    }
+@MainActor
+struct VaultMenu: View {
+    @ObservedObject var vault: VaultController
 
-    // MARK: Building the menu
-
-    func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
-        docItems = []
-
-        statusItem = info(vault.statusLine)
-        menu.addItem(statusItem!)
+    var body: some View {
+        Text(vault.statusLine)
+        Button(vault.unseenAlerts > 0
+               ? "Dashboard… (\(vault.unseenAlerts) new alert\(vault.unseenAlerts == 1 ? "" : "s"))"
+               : "Dashboard…") { DashboardWindow.show(vault) }
+            .keyboardShortcut("d")
+            .disabled(!vault.isInstalled)
         if vault.isInstalled && !vault.isVerified {
-            menu.addItem(info("Run the self-test to finish setup."))
+            Text("Run the self-test to finish setup.")
         }
         if let error = vault.lastError {
-            menu.addItem(info(error))
+            Text(error)
         }
-        let alerts = vault.unseenAlerts
-        menu.addItem(button(alerts > 0 ? "Dashboard… (\(alerts) new alert\(alerts == 1 ? "" : "s"))" : "Dashboard…",
-                            key: "d", enabled: vault.isInstalled) { [vault] in DashboardWindow.show(vault) })
-        menu.addItem(.separator())
+        Divider()
 
         if !vault.docs.isEmpty {
-            for doc in vault.docs {
-                let sub = NSMenu()
-                sub.autoenablesItems = false
-                sub.addItem(button("Show") { [vault] in vault.show(doc) })
-                sub.addItem(button("Keep Open 15 More Minutes") { [vault] in vault.extend(doc) })
-                sub.addItem(button("Close and Wipe") { [vault] in _ = vault.close(doc) })
-                let docItem = NSMenuItem(title: docTitle(doc), action: nil, keyEquivalent: "")
-                docItem.submenu = sub
-                menu.addItem(docItem)
-                docItems.append((id: doc.id, item: docItem))
+            ForEach(vault.docs) { doc in
+                Menu("\(doc.name) · closes in \(vault.countdown(doc))") {
+                    Button("Show") { vault.show(doc) }
+                    Button("Keep Open 15 More Minutes") { vault.extend(doc) }
+                    Button("Close and Wipe") { _ = vault.close(doc) }
+                }
             }
-            menu.addItem(button("Close All Documents", key: "l") { [vault] in vault.closeAll() })
-            menu.addItem(.separator())
+            Button("Close All Documents") { vault.closeAll() }
+                .keyboardShortcut("l")
+            Divider()
         }
 
-        menu.addItem(button("Open a Vault File…", enabled: vault.isInstalled && !vault.isBusy) { [vault] in
-            vault.chooseFileToOpen()
-        })
-        menu.addItem(button("Add Files to Vault…", enabled: vault.isInstalled) { [vault] in vault.addFiles() })
-        menu.addItem(button("Show Vault in Finder", enabled: vault.isInstalled) { [vault] in vault.showVaultInFinder() })
+        Button("Open a Vault File…") { vault.chooseFileToOpen() }
+            .disabled(!vault.isInstalled || vault.isBusy)
+        Button("Add Files to Vault…") { vault.addFiles() }
+            .disabled(!vault.isInstalled)
+        Button("Show Vault in Finder") { vault.showVaultInFinder() }
+            .disabled(!vault.isInstalled)
 
-        menu.addItem(.separator())
-        menu.addItem(toggle("Close Documents When Mac Sleeps or Locks", on: vault.closeOnSleep) { [vault] in
-            vault.closeOnSleep.toggle()
-        })
-        menu.addItem(toggle("Open at Login", on: vault.opensAtLogin) { [vault] in
-            vault.setOpensAtLogin(!vault.opensAtLogin)
-        })
-        menu.addItem(.separator())
-        menu.addItem(button("Quit IronVault", key: "q") { NSApp.terminate(nil) })
-    }
-
-    /// Keeps the countdowns moving while the menu is open.
-    func menuWillOpen(_ menu: NSMenu) {
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshLiveText() }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        liveTimer = timer
-    }
-
-    func menuDidClose(_ menu: NSMenu) {
-        liveTimer?.invalidate()
-        liveTimer = nil
-    }
-
-    private func refreshLiveText() {
-        statusItem?.title = vault.statusLine
-        for entry in docItems {
-            if let doc = vault.docs.first(where: { $0.id == entry.id }) {
-                entry.item.title = docTitle(doc)
-            } else {
-                entry.item.title = "Closed"
-                entry.item.isEnabled = false
-            }
-        }
-    }
-
-    private func docTitle(_ doc: VaultController.OpenDoc) -> String {
-        "\(doc.name) · closes in \(vault.countdown(doc))"
-    }
-
-    // MARK: Item helpers
-
-    private func info(_ text: String) -> NSMenuItem {
-        let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
-        item.isEnabled = false
-        return item
-    }
-
-    private func button(_ title: String, key: String = "", enabled: Bool = true,
-                        _ run: @escaping () -> Void) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: #selector(runAction(_:)), keyEquivalent: key)
-        item.target = self
-        item.representedObject = Action(run)
-        item.isEnabled = enabled
-        return item
-    }
-
-    private func toggle(_ title: String, on: Bool, _ run: @escaping () -> Void) -> NSMenuItem {
-        let item = button(title, run)
-        item.state = on ? .on : .off
-        return item
-    }
-
-    @objc private func runAction(_ sender: NSMenuItem) {
-        (sender.representedObject as? Action)?.run()
+        Divider()
+        Toggle("Close Documents When Mac Sleeps or Locks", isOn: $vault.closeOnSleep)
+        Toggle("Open at Login", isOn: Binding(
+            get: { vault.opensAtLogin },
+            set: { vault.setOpensAtLogin($0) }
+        ))
+        Divider()
+        Button("Quit IronVault") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
     }
 }

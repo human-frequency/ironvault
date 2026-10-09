@@ -16,6 +16,5 @@ sudo launchctl bootout "system/$LABEL" >/dev/null 2>&1 || true
 sudo rm -f "/Library/LaunchDaemons/$LABEL.plist"
 sudo rm -rf "/Applications/IronVault.app" "/Library/IronVault"
 rm -rf "$HOME/Library/Caches/IronVault"
-rm -f "$HOME/Library/LaunchAgents/local.ironmountain.ironvault.plist"   # Open at Login
 sudo -k
 print "Removed. Your sealed files are still in ~/IronVault."

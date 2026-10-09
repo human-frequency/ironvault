@@ -10,7 +10,7 @@ tried to read a vault file.
 - **Download:** [`dist/ironvault.zip`](dist/ironvault.zip) (source and installer)
 - **User manual:** [`docs/IronVault-User-Manual.pdf`](docs/IronVault-User-Manual.pdf)
 - **Requires:** macOS 12 Monterey or later, Apple's free Command Line Tools (no Xcode)
-- **Status:** not yet tested on a real Mac; run the included self-test before relying on it
+- **Status:** Tested for MAC OS 13.x and above only on M-chip
 
 Works on macOS 12 Monterey (12.0 and later, including 12.1) and every newer version, on Apple
 silicon and Intel Macs.

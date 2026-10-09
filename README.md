@@ -7,7 +7,8 @@ unless you approve that exact file with Touch ID. Opening one document never ope
 the decrypted copy is wiped automatically, and a Dashboard shows every app that asked for or
 tried to read a vault file.
 
-- **Download:** [`dist/ironvault.zip`](dist/ironvault.zip) (source and installer)
+- **Download (latest, 2.1):** [`dist/ironvault.zip`](dist/ironvault.zip) (source and installer)
+- **Previous release (2.0):** [`dist/ironvault-2.0.0.zip`](dist/ironvault-2.0.0.zip), macOS 13 or later. See [CHANGELOG.md](CHANGELOG.md)
 - **User manual:** [`docs/IronVault-User-Manual.pdf`](docs/IronVault-User-Manual.pdf)
 - **Requires:** macOS 12 Monterey or later, Apple's free Command Line Tools (no Xcode)
 - **Status:** Tested for MAC OS 13.x and above only on M-chip

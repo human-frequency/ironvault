@@ -8,7 +8,7 @@
 - Built with the Swift compiler directly instead of Swift Package Manager. This fixes the "Invalid manifest" build error some Command Line Tools installs hit.
 - User manual added: `docs/IronVault-User-Manual.pdf`.
 
-Download: [`dist/ironvault.zip`](dist/ironvault.zip). Tag: `v2.1.0`.
+Download: [`dist/ironvault.zip`](dist/ironvault.zip). Source: the `main` branch.
 
 ## 2.0
 
@@ -17,4 +17,4 @@ Download: [`dist/ironvault.zip`](dist/ironvault.zip). Tag: `v2.1.0`.
 - Dashboard shows who asked to open vault files and the reads IronVault noticed.
 - Requires macOS 13 Ventura or later. It builds with Swift Package Manager, which fails on some Command Line Tools installs; use 2.1 if that happens.
 
-Download: [`dist/ironvault-2.0.0.zip`](dist/ironvault-2.0.0.zip). Tag: `v2.0.0`.
+Download: [`dist/ironvault-2.0.0.zip`](dist/ironvault-2.0.0.zip). Source: the [`release-2.0`](../../tree/release-2.0) branch.

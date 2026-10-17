@@ -202,5 +202,4 @@ and key, and leaves your sealed files. After that only the recovery key opens th
 | `app/Sources/ironvault-cli` | The `ironvault` command and the watchdog. |
 | `launchd/` | Runs the watchdog every 15 seconds. |
 
-This was written without a Mac to build or run it on. The self-test exists to close that gap,
-and IronVault won't delete any original until it passes.
+This was written on a MAC M chip to build or run it on
